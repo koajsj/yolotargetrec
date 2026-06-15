@@ -1,57 +1,86 @@
-# YOLOv8 VPS Web 系统
+# YOLOv8 VPS Web System
 
-## 环境要求
+Single-service YOLOv8 web app for image detection and camera detection.
 
+## Requirements
+
+- Linux VPS
 - Docker
-- Docker Compose
+- Docker Compose plugin or docker-compose
+- Git
 
-## 启动
+## One-click start
 
 ```bash
-git clone <your-repo-url>
-cd <your-repo-folder>
+git clone https://github.com/koajsj/yolotargetrec.git
+cd yolotargetrec
 bash run.sh
 ```
 
-启动完成后浏览器访问：
+After startup, open:
 
 ```text
-http://你的VPS公网IP:8000
+http://YOUR_VPS_IP:8000
 ```
 
-## 功能验证
+## Full commands for a clean Ubuntu VPS
 
-1. 打开页面后顶部显示服务正常。
-2. 在“图片检测”区域选择图片，可看到检测框、`label`、`conf`、`track_id`。
-3. 在“摄像头实时检测”区域点击“开启摄像头”。
-4. 浏览器允许摄像头权限后，系统会每 250ms 发送一帧到后端检测。
-5. 页面会显示检测框、`label`、`conf`、`track_id` 和实时 FPS。
+```bash
+sudo apt update
+sudo apt install -y git docker.io docker-compose-plugin
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+newgrp docker
+git clone https://github.com/koajsj/yolotargetrec.git
+cd yolotargetrec
+bash run.sh
+```
 
-## 更新
+## Daily commands
+
+Start or rebuild:
+
+```bash
+bash run.sh
+```
+
+Update from GitHub and restart:
 
 ```bash
 bash update.sh
 ```
 
-更新脚本会执行：
-
-```bash
-git pull origin main
-docker-compose up --build -d
-```
-
-更新后可继续访问 `http://你的VPS公网IP:8000`，图片检测和摄像头检测仍可正常使用。
-
-## 其他脚本
-
-重启服务：
+Restart only:
 
 ```bash
 bash restart.sh
 ```
 
-停止服务：
+Stop:
 
 ```bash
 bash stop.sh
 ```
+
+## What run.sh does
+
+- Checks Docker availability
+- Detects `docker compose` or `docker-compose`
+- Builds image
+- Starts container in background
+- Waits for `GET /health` to return success
+- Prints the access URL
+
+## Verify features
+
+1. Open `http://YOUR_VPS_IP:8000`
+2. Upload an image and confirm boxes are drawn
+3. Start the camera and confirm live boxes, labels, conf, track_id, and FPS
+
+## Notes
+
+- Service port is `8000`
+- Model is fixed to `yolov8n.pt`
+- In camera mode, overloaded requests are dropped instead of queued
+- Tracking failure falls back to per-frame numbering
