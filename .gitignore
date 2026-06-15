@@ -1,6 +1,9 @@
 # Claude / tooling metadata
 .claude/
 
+# Environment overrides (use .env.example as the template)
+.env
+
 # Python
 __pycache__/
 *.pyc
@@ -10,3 +13,8 @@ venv/
 
 # Node
 node_modules/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/

@@ -1,5 +1,7 @@
 import math
-from typing import Dict, List
+import threading
+import time
+from typing import Dict, List, Optional, Tuple
 
 
 def _center(box: dict) -> tuple[float, float]:
@@ -75,6 +77,8 @@ class SimpleTracker:
             for track_id, track in self.tracks.items():
                 if track_id in used_tracks:
                     continue
+                if track["box"].get("label") != det.get("label"):
+                    continue
 
                 iou_score = _iou(det, track["box"])
                 distance_score = _distance(det, track["box"])
@@ -121,3 +125,48 @@ class SimpleTracker:
 
         for track_id in stale_ids:
             self.tracks.pop(track_id, None)
+
+
+class TrackerRegistry:
+    def __init__(
+        self,
+        idle_timeout_seconds: int = 300,
+        tracker_max_missing: int = 8,
+        tracker_iou_threshold: float = 0.3,
+        tracker_distance_threshold: float = 90.0,
+    ) -> None:
+        self._idle_timeout = idle_timeout_seconds
+        self._tracker_kwargs = {
+            "max_missing": tracker_max_missing,
+            "iou_threshold": tracker_iou_threshold,
+            "distance_threshold": tracker_distance_threshold,
+        }
+        self._trackers: Dict[str, Tuple[SimpleTracker, float]] = {}
+        self._lock = threading.Lock()
+
+    def get(self, session_id: str) -> SimpleTracker:
+        with self._lock:
+            entry = self._trackers.get(session_id)
+            now = time.time()
+            if entry is None:
+                tracker = SimpleTracker(**self._tracker_kwargs)
+                self._trackers[session_id] = (tracker, now)
+                return tracker
+            tracker, _ = entry
+            self._trackers[session_id] = (tracker, now)
+            return tracker
+
+    def cleanup(self) -> int:
+        with self._lock:
+            now = time.time()
+            stale = [
+                sid for sid, (_, ts) in self._trackers.items()
+                if now - ts > self._idle_timeout
+            ]
+            for sid in stale:
+                self._trackers.pop(sid, None)
+            return len(stale)
+
+    def count(self) -> int:
+        with self._lock:
+            return len(self._trackers)

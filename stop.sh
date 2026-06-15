@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
 set -e
+source "$(dirname "$0")/_lib.sh"
 
-if docker compose version >/dev/null 2>&1; then
-  COMPOSE_CMD="docker compose"
-elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD="docker-compose"
-else
-  echo "docker compose is not installed"
-  exit 1
-fi
+require_docker
+detect_compose_cmd
+require_docker_daemon
 
 $COMPOSE_CMD down
 echo "Service stopped"

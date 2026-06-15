@@ -1,0 +1,46 @@
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Editor / tooling metadata
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node (in case anyone uses npm)
+node_modules/
+
+# Documentation
+*.md
+LICENSE
+docs/
+
+# Logs
+*.log
+logs/
+
+# Scripts not needed inside image (kept on host only)
+run.sh
+update.sh
+restart.sh
+stop.sh

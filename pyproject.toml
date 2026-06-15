@@ -1,0 +1,44 @@
+[project]
+name = "yolo-vps"
+version = "0.1.0"
+description = "Single-service YOLOv8 detection web app for VPS deployment"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "kikou" }]
+
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.6",
+    "numpy>=1.26.0",
+    "opencv-python-headless>=4.10.0",
+    "ultralytics>=8.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["backend*"]
+exclude = ["tests*", "frontend*", ".github*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

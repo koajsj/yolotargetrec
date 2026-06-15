@@ -7,9 +7,26 @@ services:
     ports:
       - "8000:8000"
     restart: always
+    environment:
+      # Number of in-flight detection slots before camera frames are dropped.
+      # Inference execution remains serialized inside one model instance.
+      - MAX_CONCURRENT_DETECTIONS=${MAX_CONCURRENT_DETECTIONS:-2}
+      # Swap to yolov8s/m/l.pt for higher accuracy at the cost of speed.
+      # The model is downloaded during image build; the path/name here must
+      # also be valid (the Dockerfile pre-downloads yolov8n.pt by default).
+      - YOLO_MODEL=${YOLO_MODEL:-yolov8n.pt}
+      - YOLO_IMAGE_SIZE=${YOLO_IMAGE_SIZE:-640}
+      - REQUEST_TIMEOUT_SECONDS=${REQUEST_TIMEOUT_SECONDS:-15}
+      - MAX_BODY_SIZE=${MAX_BODY_SIZE:-10485760}
+      - MAX_IMAGE_DIMENSION=${MAX_IMAGE_DIMENSION:-2560}
+      - CAMERA_INTERVAL_MS=${CAMERA_INTERVAL_MS:-250}
+      - CAMERA_MAX_WIDTH=${CAMERA_MAX_WIDTH:-640}
+      # Leave empty for same-origin only. Set comma-separated origins if a
+      # separate frontend needs browser access.
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()"]
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 60s
