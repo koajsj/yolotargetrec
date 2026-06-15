@@ -1,0 +1,143 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: #f3f5f7;
+  color: #18212b;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+
+.header p,
+.health {
+  margin: 0;
+  color: #52606d;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(24, 33, 43, 0.08);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.upload-btn,
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: #0f766e;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+.status,
+.stats {
+  min-height: 24px;
+  color: #52606d;
+  margin: 12px 0 16px;
+}
+
+.stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.canvas-wrap,
+.video-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #0f1720;
+}
+
+.image-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#imageCanvas,
+#cameraCanvas,
+#cameraVideo {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+#cameraCanvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.camera-controls {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 16px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .header h1 {
+    font-size: 26px;
+  }
+}

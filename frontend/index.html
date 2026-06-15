@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YOLOv8 VPS Detection</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <h1>YOLOv8 Detection</h1>
+      <p>Image detection and camera detection</p>
+      <div class="health">
+        <span id="healthText">Checking service...</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="section-head">
+          <h2>Image Detection</h2>
+        </div>
+        <label class="upload-btn" for="imageInput">Select Image</label>
+        <input id="imageInput" type="file" accept="image/*">
+        <p id="imageStatus" class="status">Waiting for image</p>
+        <div class="canvas-wrap image-wrap">
+          <canvas id="imageCanvas"></canvas>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Camera Detection</h2>
+          <div class="camera-controls">
+            <button id="startCameraBtn" type="button">Start Camera</button>
+            <button id="stopCameraBtn" type="button" disabled>Stop</button>
+          </div>
+        </div>
+        <div class="stats">
+          <span id="fpsText">FPS: 0.0</span>
+          <span id="cameraStatus">Camera is off</span>
+        </div>
+        <div class="video-wrap">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <canvas id="cameraCanvas"></canvas>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
