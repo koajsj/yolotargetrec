@@ -4,49 +4,158 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YOLOv8 VPS Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="page">
     <header class="header">
-      <h1>YOLOv8 Detection</h1>
-      <p>Image detection and camera detection</p>
-      <div class="health">
-        <span id="healthText">Checking service...</span>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <path d="M7 9h10v6H7z"/>
+            <circle cx="9" cy="12" r="0.8" fill="currentColor"/>
+            <circle cx="15" cy="12" r="0.8" fill="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <h1>YOLOv8 Detection</h1>
+          <p>Real-time object detection with YOLOv8 · Image &amp; Camera</p>
+        </div>
+      </div>
+      <div id="health" class="health" data-state="checking">
+        <span class="health-dot"></span>
+        <span id="healthText">Checking service…</span>
       </div>
     </header>
 
     <main class="grid">
       <section class="card">
-        <div class="section-head">
-          <h2>Image Detection</h2>
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <path d="M21 15l-5-5L5 21"/>
+                </svg>
+              </span>
+              Image Detection
+            </h2>
+            <p class="card-subtitle">Upload an image to detect objects</p>
+          </div>
+          <label class="btn" for="imageInput">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Select Image
+          </label>
+          <input id="imageInput" type="file" accept="image/*">
         </div>
-        <label class="upload-btn" for="imageInput">Select Image</label>
-        <input id="imageInput" type="file" accept="image/*">
+
+        <div class="stats">
+          <div class="stat-chip">
+            <span>Objects</span>
+            <span id="imageCount" class="value">0</span>
+          </div>
+          <div class="stat-chip">
+            <span>Latency</span>
+            <span id="imageLatency" class="value">—</span>
+          </div>
+        </div>
+
         <p id="imageStatus" class="status">Waiting for image</p>
-        <div class="canvas-wrap image-wrap">
+        <div id="imageSummary" class="summary" aria-live="polite"></div>
+
+        <div class="media-wrap upload-zone" id="imageDrop">
           <canvas id="imageCanvas"></canvas>
+          <div class="media-empty" id="imageEmpty">
+            <svg class="icon-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <div>Drop an image here, or click <strong>Select Image</strong></div>
+            <div class="hint">Supports PNG, JPG, WEBP</div>
+          </div>
         </div>
       </section>
 
       <section class="card">
-        <div class="section-head">
-          <h2>Camera Detection</h2>
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 7l-7 5 7 5V7z"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2"/>
+                </svg>
+              </span>
+              Camera Detection
+            </h2>
+            <p class="card-subtitle">Live stream inference at ~4 FPS</p>
+          </div>
           <div class="camera-controls">
-            <button id="startCameraBtn" type="button">Start Camera</button>
-            <button id="stopCameraBtn" type="button" disabled>Stop</button>
+            <button id="startCameraBtn" type="button" class="btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              Start
+            </button>
+            <button id="stopCameraBtn" type="button" class="btn btn-ghost" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="6" y="6" width="12" height="12" rx="1"/>
+              </svg>
+              Stop
+            </button>
           </div>
         </div>
+
         <div class="stats">
-          <span id="fpsText">FPS: 0.0</span>
-          <span id="cameraStatus">Camera is off</span>
+          <div class="stat-chip">
+            <span>FPS</span>
+            <span id="fpsText" class="value">0.0</span>
+          </div>
+          <div class="stat-chip">
+            <span>Latency</span>
+            <span id="cameraLatency" class="value">—</span>
+          </div>
         </div>
-        <div class="video-wrap">
+
+        <p id="cameraStatus" class="status">
+          <span class="pill" id="cameraPill">
+            <span class="dot"></span>
+            <span id="cameraStateText">Camera is off</span>
+          </span>
+        </p>
+
+        <div class="media-wrap">
           <video id="cameraVideo" autoplay playsinline muted></video>
           <canvas id="cameraCanvas"></canvas>
+          <div class="media-empty" id="cameraEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 7l-7 5 7 5V7z"/>
+              <rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+            <div>Camera is off</div>
+            <div class="hint">Click <strong>Start</strong> to begin live detection</div>
+          </div>
         </div>
       </section>
     </main>
+
+    <footer class="footer">
+      YOLOv8 VPS Detection · powered by FastAPI &amp; Ultralytics
+    </footer>
   </div>
 
   <script src="/app.js"></script>
