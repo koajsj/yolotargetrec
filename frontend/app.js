@@ -20,10 +20,12 @@ const fpsText = document.getElementById("fpsText");
 const cameraLatency = document.getElementById("cameraLatency");
 const cameraVideo = document.getElementById("cameraVideo");
 const cameraCanvas = document.getElementById("cameraCanvas");
+const cameraStage = document.getElementById("cameraStage");
 const cameraCtx = cameraCanvas.getContext("2d");
 
 const captureCanvas = document.createElement("canvas");
 const captureCtx = captureCanvas.getContext("2d");
+const IMAGE_PREVIEW_MAX_EDGE = 1600;
 
 const runtimeConfig = {
   cameraIntervalMs: 250,
@@ -59,13 +61,28 @@ let cameraStream = null;
 let detectTimer = null;
 let requestPending = false;
 let fpsMarks = [];
+let lastCameraBoxes = [];
 let lastCameraSourceSize = { width: 0, height: 0 };
 let imageAbort = null;
 let cameraAbort = null;
 let cameraRunId = 0;
+let cameraOverlayFrame = 0;
 
 function buildHeaders(extra) {
   return Object.assign({ "X-Session-Id": SESSION_ID }, extra || {});
+}
+
+function setMediaAspect(element, width, height) {
+  if (!element || !Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return;
+  }
+  element.style.setProperty("--media-aspect", `${width} / ${height}`);
+}
+
+function clearMediaAspect(element) {
+  if (element) {
+    element.style.removeProperty("--media-aspect");
+  }
 }
 
 function applyRuntimeConfig(config) {
@@ -92,6 +109,36 @@ function applyRuntimeConfig(config) {
   if (cameraSubtitle) {
     cameraSubtitle.textContent = `Capture one frame every ${runtimeConfig.cameraIntervalMs} ms and overlay boxes`;
   }
+}
+
+function fitContainRect(sourceWidth, sourceHeight, targetWidth, targetHeight) {
+  const safeSourceWidth = Math.max(1, sourceWidth);
+  const safeSourceHeight = Math.max(1, sourceHeight);
+  const scale = Math.min(targetWidth / safeSourceWidth, targetHeight / safeSourceHeight);
+  const width = safeSourceWidth * scale;
+  const height = safeSourceHeight * scale;
+  return {
+    offsetX: (targetWidth - width) / 2,
+    offsetY: (targetHeight - height) / 2,
+    width,
+    height,
+  };
+}
+
+function resizeHiDPICanvas(canvas, ctx, width, height) {
+  const displayWidth = Math.max(1, Math.round(width));
+  const displayHeight = Math.max(1, Math.round(height));
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelWidth = Math.round(displayWidth * dpr);
+  const pixelHeight = Math.round(displayHeight * dpr);
+
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { width: displayWidth, height: displayHeight };
 }
 
 function colorFor(label) {
@@ -268,16 +315,26 @@ async function detectImage(file) {
   resetImageSummary();
   setImageEmpty(false);
 
+  let imageBitmap = null;
+  let previewDrawn = false;
   try {
-    const imageBitmap = await createImageBitmap(file);
+    imageBitmap = await createImageBitmap(file);
     if (controller.signal.aborted) {
       return;
     }
 
-    imageCanvas.width = imageBitmap.width;
-    imageCanvas.height = imageBitmap.height;
+    const sourceWidth = imageBitmap.width;
+    const sourceHeight = imageBitmap.height;
+    const previewScale = Math.min(1, IMAGE_PREVIEW_MAX_EDGE / Math.max(sourceWidth, sourceHeight, 1));
+    const previewWidth = Math.max(1, Math.round(sourceWidth * previewScale));
+    const previewHeight = Math.max(1, Math.round(sourceHeight * previewScale));
+
+    setMediaAspect(imageDrop, sourceWidth, sourceHeight);
+    imageCanvas.width = previewWidth;
+    imageCanvas.height = previewHeight;
     imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
-    imageCtx.drawImage(imageBitmap, 0, 0);
+    imageCtx.drawImage(imageBitmap, 0, 0, previewWidth, previewHeight);
+    previewDrawn = true;
 
     const { response, data } = await fetchJsonWithTimeout("/detect?mode=image", {
       method: "POST",
@@ -293,7 +350,12 @@ async function detectImage(file) {
     }
 
     const boxes = Array.isArray(data.boxes) ? data.boxes : [];
-    drawBoxes(imageCtx, boxes, 1, 1);
+    drawBoxes(
+      imageCtx,
+      boxes,
+      previewWidth / Math.max(sourceWidth, 1),
+      previewHeight / Math.max(sourceHeight, 1)
+    );
     imageCount.textContent = String(boxes.length);
     imageLatency.textContent = `${data.processing_ms} ms`;
     buildSummary(boxes);
@@ -319,8 +381,13 @@ async function detectImage(file) {
     }
 
     setStatus(imageStatus, message, "error");
-    setImageEmpty(true);
+    if (!previewDrawn) {
+      setImageEmpty(true);
+    }
   } finally {
+    if (imageBitmap && typeof imageBitmap.close === "function") {
+      imageBitmap.close();
+    }
     if (imageAbort === controller) {
       imageAbort = null;
     }
@@ -333,22 +400,65 @@ function updateFps() {
   fpsText.textContent = fpsMarks.length.toFixed(1);
 }
 
-function resizeCameraCanvas() {
-  const width = cameraVideo.clientWidth || 640;
-  const height = cameraVideo.clientHeight || 360;
-  cameraCanvas.width = width;
-  cameraCanvas.height = height;
-}
+function drawCameraOverlay(boxes = lastCameraBoxes) {
+  lastCameraBoxes = Array.isArray(boxes) ? boxes : [];
+  if (!cameraStage) {
+    return;
+  }
 
-function drawCameraOverlay(boxes) {
-  resizeCameraCanvas();
-  cameraCtx.clearRect(0, 0, cameraCanvas.width, cameraCanvas.height);
+  const stageWidth = cameraStage.clientWidth || 640;
+  const stageHeight = cameraStage.clientHeight || 360;
+  const displaySize = resizeHiDPICanvas(cameraCanvas, cameraCtx, stageWidth, stageHeight);
+  cameraCtx.clearRect(0, 0, displaySize.width, displaySize.height);
+
   if (!lastCameraSourceSize.width || !lastCameraSourceSize.height) {
     return;
   }
-  const scaleX = cameraCanvas.width / lastCameraSourceSize.width;
-  const scaleY = cameraCanvas.height / lastCameraSourceSize.height;
-  drawBoxes(cameraCtx, boxes, scaleX, scaleY);
+
+  setMediaAspect(cameraStage, lastCameraSourceSize.width, lastCameraSourceSize.height);
+  if (lastCameraBoxes.length === 0) {
+    return;
+  }
+
+  const rect = fitContainRect(
+    lastCameraSourceSize.width,
+    lastCameraSourceSize.height,
+    displaySize.width,
+    displaySize.height
+  );
+
+  cameraCtx.save();
+  cameraCtx.translate(rect.offsetX, rect.offsetY);
+  drawBoxes(
+    cameraCtx,
+    lastCameraBoxes,
+    rect.width / Math.max(lastCameraSourceSize.width, 1),
+    rect.height / Math.max(lastCameraSourceSize.height, 1)
+  );
+  cameraCtx.restore();
+}
+
+function scheduleCameraOverlayDraw() {
+  if (cameraOverlayFrame) {
+    return;
+  }
+  cameraOverlayFrame = window.requestAnimationFrame(() => {
+    cameraOverlayFrame = 0;
+    drawCameraOverlay();
+  });
+}
+
+function scheduleNextCameraFrame(delayMs = runtimeConfig.cameraIntervalMs) {
+  if (!cameraStream) {
+    return;
+  }
+  if (detectTimer) {
+    window.clearTimeout(detectTimer);
+  }
+  detectTimer = window.setTimeout(() => {
+    detectTimer = null;
+    void sendCameraFrame();
+  }, Math.max(0, delayMs));
 }
 
 function setCameraState(state, labelText, variant) {
@@ -372,6 +482,7 @@ async function sendCameraFrame() {
   }
 
   const runId = cameraRunId;
+  const startedAt = performance.now();
   requestPending = true;
 
   try {
@@ -436,6 +547,10 @@ async function sendCameraFrame() {
       cameraAbort = null;
     }
     requestPending = false;
+    if (runId === cameraRunId && cameraStream) {
+      const elapsedMs = performance.now() - startedAt;
+      scheduleNextCameraFrame(runtimeConfig.cameraIntervalMs - elapsedMs);
+    }
   }
 }
 
@@ -449,9 +564,12 @@ async function startCamera() {
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     cameraVideo.srcObject = cameraStream;
     await cameraVideo.play();
+    if (cameraVideo.videoWidth && cameraVideo.videoHeight) {
+      setMediaAspect(cameraStage, cameraVideo.videoWidth, cameraVideo.videoHeight);
+    }
     cameraEmpty.style.display = "none";
-    resizeCameraCanvas();
-    detectTimer = window.setInterval(sendCameraFrame, runtimeConfig.cameraIntervalMs);
+    drawCameraOverlay([]);
+    scheduleNextCameraFrame(0);
     startCameraBtn.disabled = true;
     stopCameraBtn.disabled = false;
     setCameraState("running", "Camera started", "running");
@@ -463,8 +581,12 @@ async function startCamera() {
 function stopCamera() {
   cameraRunId += 1;
   if (detectTimer) {
-    window.clearInterval(detectTimer);
+    window.clearTimeout(detectTimer);
     detectTimer = null;
+  }
+  if (cameraOverlayFrame) {
+    window.cancelAnimationFrame(cameraOverlayFrame);
+    cameraOverlayFrame = 0;
   }
   if (cameraAbort) {
     cameraAbort.abort();
@@ -476,8 +598,11 @@ function stopCamera() {
   }
   requestPending = false;
   fpsMarks = [];
+  lastCameraBoxes = [];
+  lastCameraSourceSize = { width: 0, height: 0 };
   updateFps();
-  cameraCtx.clearRect(0, 0, cameraCanvas.width, cameraCanvas.height);
+  drawCameraOverlay([]);
+  clearMediaAspect(cameraStage);
   cameraEmpty.style.display = "";
   startCameraBtn.disabled = false;
   stopCameraBtn.disabled = true;
@@ -519,13 +644,22 @@ imageInput.addEventListener("change", (event) => {
 
 startCameraBtn.addEventListener("click", startCamera);
 stopCameraBtn.addEventListener("click", stopCamera);
-window.addEventListener("resize", resizeCameraCanvas);
+window.addEventListener("resize", scheduleCameraOverlayDraw);
 window.addEventListener("beforeunload", stopCamera);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && cameraStream) {
     setCameraState("warn", "Page hidden, throttled", "warn");
   }
 });
+
+if (typeof ResizeObserver !== "undefined" && cameraStage) {
+  const cameraResizeObserver = new ResizeObserver(() => {
+    if (cameraStream || lastCameraBoxes.length) {
+      scheduleCameraOverlayDraw();
+    }
+  });
+  cameraResizeObserver.observe(cameraStage);
+}
 
 setImageEmpty(true);
 checkHealth();

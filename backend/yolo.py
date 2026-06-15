@@ -1,5 +1,4 @@
 import threading
-from typing import List, Tuple
 
 import numpy as np
 from ultralytics import YOLO
@@ -38,7 +37,7 @@ class YOLODetector:
     def max_concurrent(self) -> int:
         return self._max_concurrent
 
-    def detect(self, image: np.ndarray, wait_timeout: float | None = None) -> Tuple[List[dict], bool]:
+    def detect(self, image: np.ndarray, wait_timeout: float | None = None) -> tuple[list[dict], bool]:
         if image is None or image.size == 0:
             return [], False
 
@@ -62,7 +61,7 @@ class YOLODetector:
             with self._slot_lock:
                 self._active -= 1
 
-    def _run_predict(self, image: np.ndarray) -> List[dict]:
+    def _run_predict(self, image: np.ndarray) -> list[dict]:
         image_height, image_width = image.shape[:2]
         results = self.model.predict(
             image,
@@ -85,7 +84,7 @@ class YOLODetector:
         cls_list = boxes.cls.cpu().numpy().astype(int)
 
         output = []
-        for xyxy, conf, cls_idx in zip(xyxy_list, conf_list, cls_list):
+        for xyxy, conf, cls_idx in zip(xyxy_list, conf_list, cls_list, strict=False):
             x1, y1, x2, y2 = xyxy.tolist()
             x1 = min(max(0, int(round(x1))), max(image_width - 1, 0))
             y1 = min(max(0, int(round(y1))), max(image_height - 1, 0))

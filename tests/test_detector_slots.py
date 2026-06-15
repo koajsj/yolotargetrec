@@ -84,7 +84,8 @@ class TestDetectorSlots(unittest.TestCase):
             self.assertEqual(d.active_count, 2)
             self.assertTrue(d.is_busy())
             release.set()
-            t1.join(); t2.join()
+            t1.join()
+            t2.join()
             self.assertFalse(d.is_busy())
             self.assertEqual(d.active_count, 0)
 
@@ -109,7 +110,8 @@ class TestDetectorSlots(unittest.TestCase):
             self.assertTrue(dropped)
             self.assertEqual(boxes, [])
             release.set()
-            t1.join(); t2.join()
+            t1.join()
+            t2.join()
 
     def test_release_on_exception(self):
         d = self._make_detector(max_concurrent=1)

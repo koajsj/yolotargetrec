@@ -3,7 +3,6 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,7 +24,7 @@ logger = logging.getLogger("yolo-vps")
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 
-detector: Optional[YOLODetector] = None
+detector: YOLODetector | None = None
 detector_init_error = ""
 tracker_registry = TrackerRegistry(
     idle_timeout_seconds=CONFIG.tracker_idle_timeout_seconds,

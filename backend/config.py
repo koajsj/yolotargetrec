@@ -1,10 +1,9 @@
 """Centralised configuration."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 import os
-from dataclasses import dataclass
-from typing import Tuple
 
 
 logger = logging.getLogger("yolo-vps.config")
@@ -46,7 +45,7 @@ def _env_float(name: str, default: float, minimum: float | None = None, maximum:
     return value
 
 
-def _env_csv(name: str) -> Tuple[str, ...]:
+def _env_csv(name: str) -> tuple[str, ...]:
     raw = os.environ.get(name, "")
     if not raw.strip():
         return ()
@@ -64,7 +63,7 @@ class Config:
     request_timeout_seconds: float = _env_float("REQUEST_TIMEOUT_SECONDS", 15.0, minimum=0.1)
     max_body_size: int = _env_int("MAX_BODY_SIZE", 10 * 1024 * 1024, minimum=1024)
     max_image_dimension: int = _env_int("MAX_IMAGE_DIMENSION", 2560, minimum=64)
-    allowed_origins: Tuple[str, ...] = _env_csv("ALLOWED_ORIGINS")
+    allowed_origins: tuple[str, ...] = _env_csv("ALLOWED_ORIGINS")
 
     # ----- Tracker -----
     tracker_max_missing: int = _env_int("TRACKER_MAX_MISSING", 8, minimum=0, maximum=120)

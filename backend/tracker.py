@@ -1,7 +1,6 @@
 import math
 import threading
 import time
-from typing import Dict, List, Optional, Tuple
 
 
 def _center(box: dict) -> tuple[float, float]:
@@ -39,7 +38,7 @@ def _distance(box_a: dict, box_b: dict) -> float:
     return math.hypot(ax - bx, ay - by)
 
 
-def assign_fallback_track_ids(detections: List[dict]) -> List[dict]:
+def assign_fallback_track_ids(detections: list[dict]) -> list[dict]:
     output = []
     for index, det in enumerate(detections, start=1):
         item = dict(det)
@@ -54,15 +53,15 @@ class SimpleTracker:
         self.iou_threshold = iou_threshold
         self.distance_threshold = distance_threshold
         self.next_track_id = 1
-        self.tracks: Dict[int, dict] = {}
+        self.tracks: dict[int, dict] = {}
 
-    def update(self, detections: List[dict]) -> List[dict]:
+    def update(self, detections: list[dict]) -> list[dict]:
         try:
             return self._update(detections)
         except Exception:
             return assign_fallback_track_ids(detections)
 
-    def _update(self, detections: List[dict]) -> List[dict]:
+    def _update(self, detections: list[dict]) -> list[dict]:
         if not detections:
             self._age_tracks()
             return []
@@ -141,7 +140,7 @@ class TrackerRegistry:
             "iou_threshold": tracker_iou_threshold,
             "distance_threshold": tracker_distance_threshold,
         }
-        self._trackers: Dict[str, Tuple[SimpleTracker, float]] = {}
+        self._trackers: dict[str, tuple[SimpleTracker, float]] = {}
         self._lock = threading.Lock()
 
     def get(self, session_id: str) -> SimpleTracker:
