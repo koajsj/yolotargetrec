@@ -10,8 +10,11 @@ git_fast_forward_update
 $COMPOSE_CMD up -d --build --remove-orphans
 
 if status="$(wait_for_healthy yolo-vps-app 60)"; then
+  ip=$(server_ip)
   $COMPOSE_CMD ps
   echo "Update completed"
+  echo "Open: http://${ip}:8000"
+  echo "Camera detection still requires HTTPS or localhost in the browser."
 else
   echo "service failed after update (status: $status)"
   $COMPOSE_CMD logs --tail=100

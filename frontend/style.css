@@ -29,7 +29,7 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
 
-  --font-sans: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC",
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC",
                "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 }
@@ -492,6 +492,12 @@ input[type="file"] {
 
 .summary:empty::after {
   content: "No objects detected yet";
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.inline-note {
+  margin: -4px 0 0;
   font-size: 12px;
   color: var(--text-muted);
 }

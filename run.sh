@@ -13,6 +13,8 @@ if status="$(wait_for_healthy yolo-vps-app 60)"; then
   ip=$(server_ip)
   echo "Service started"
   echo "Open: http://${ip}:8000"
+  echo "Image detection works on plain HTTP."
+  echo "Camera detection requires HTTPS or localhost in the browser."
 else
   echo "service failed to become healthy (status: $status)"
   $COMPOSE_CMD logs --tail=100

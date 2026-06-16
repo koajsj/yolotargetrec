@@ -1,6 +1,10 @@
+import logging
 import math
 import threading
 import time
+
+
+logger = logging.getLogger("yolo-vps.tracker")
 
 
 def _center(box: dict) -> tuple[float, float]:
@@ -54,12 +58,15 @@ class SimpleTracker:
         self.distance_threshold = distance_threshold
         self.next_track_id = 1
         self.tracks: dict[int, dict] = {}
+        self._lock = threading.Lock()
 
     def update(self, detections: list[dict]) -> list[dict]:
-        try:
-            return self._update(detections)
-        except Exception:
-            return assign_fallback_track_ids(detections)
+        with self._lock:
+            try:
+                return self._update(detections)
+            except Exception:
+                logger.warning("tracker update failed, falling back to per-frame ids", exc_info=True)
+                return assign_fallback_track_ids(detections)
 
     def _update(self, detections: list[dict]) -> list[dict]:
         if not detections:

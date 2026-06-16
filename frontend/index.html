@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YOLOv8 VPS Detection</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -147,9 +144,10 @@
               <rect x="1" y="5" width="15" height="14" rx="2"></rect>
             </svg>
             <div>Camera is off</div>
-            <div class="hint">Click <strong>Start</strong> to begin live detection</div>
+            <div class="hint" id="cameraHint">Click <strong>Start</strong> to begin live detection</div>
           </div>
         </div>
+        <p class="inline-note">Camera mode needs HTTPS or localhost in modern browsers.</p>
       </section>
     </main>
 

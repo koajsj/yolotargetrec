@@ -27,7 +27,9 @@ detect_compose_cmd() {
 
 require_docker_daemon() {
   if ! docker info >/dev/null 2>&1; then
-    echo "docker daemon is not running"
+    echo "docker daemon is not running or current user cannot access docker"
+    echo "try: sudo systemctl start docker"
+    echo "or run the script with sudo on a fresh VPS"
     exit 1
   fi
 }
@@ -96,6 +98,16 @@ git_fast_forward_update() {
 server_ip() {
   local ip
   ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  if [ -z "$ip" ] && command -v ip >/dev/null 2>&1; then
+    ip="$(ip route get 1.1.1.1 2>/dev/null | awk '{
+      for (i = 1; i <= NF; i++) {
+        if ($i == "src") {
+          print $(i + 1)
+          exit
+        }
+      }
+    }')"
+  fi
   if [ -z "$ip" ]; then
     ip="127.0.0.1"
   fi

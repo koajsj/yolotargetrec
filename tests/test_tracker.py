@@ -1,5 +1,8 @@
 """Unit tests for the lightweight IoU tracker."""
+import threading
+import time
 import unittest
+from unittest import mock
 
 from backend.tracker import SimpleTracker, _iou, assign_fallback_track_ids
 
@@ -66,6 +69,51 @@ class TestSimpleTracker(unittest.TestCase):
         first = t.update([{"x": 0, "y": 0, "w": 10, "h": 10, "label": "person", "conf": 0.9}])
         second = t.update([{"x": 1, "y": 1, "w": 10, "h": 10, "label": "car", "conf": 0.9}])
         self.assertNotEqual(first[0]["track_id"], second[0]["track_id"])
+
+    def test_falls_back_and_logs_when_update_fails(self):
+        t = SimpleTracker()
+        detections = [{"x": 0, "y": 0, "w": 10, "h": 10, "label": "person", "conf": 0.9}]
+        with (
+            mock.patch.object(t, "_update", side_effect=RuntimeError("boom")),
+            self.assertLogs("yolo-vps.tracker", level="WARNING") as logs,
+        ):
+            out = t.update(detections)
+        self.assertEqual([item["track_id"] for item in out], [1])
+        self.assertTrue(any("falling back to per-frame ids" in entry for entry in logs.output))
+
+    def test_update_is_serialized_per_tracker(self):
+        t = SimpleTracker()
+        entered = threading.Event()
+        release = threading.Event()
+        state_lock = threading.Lock()
+        active = 0
+        max_active = 0
+
+        def slow_update(detections):
+            nonlocal active
+            nonlocal max_active
+            with state_lock:
+                active += 1
+                max_active = max(max_active, active)
+                entered.set()
+            release.wait(timeout=1.0)
+            with state_lock:
+                active -= 1
+            return assign_fallback_track_ids(detections)
+
+        detections = [{"x": 0, "y": 0, "w": 10, "h": 10, "label": "person", "conf": 0.9}]
+        with mock.patch.object(t, "_update", side_effect=slow_update):
+            first = threading.Thread(target=lambda: t.update(detections))
+            second = threading.Thread(target=lambda: t.update(detections))
+            first.start()
+            self.assertTrue(entered.wait(timeout=1.0))
+            second.start()
+            time.sleep(0.05)
+            release.set()
+            first.join()
+            second.join()
+
+        self.assertEqual(max_active, 1)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ const stopCameraBtn = document.getElementById("stopCameraBtn");
 const cameraPill = document.getElementById("cameraPill");
 const cameraStateText = document.getElementById("cameraStateText");
 const cameraSubtitle = document.getElementById("cameraSubtitle");
+const cameraHint = document.getElementById("cameraHint");
 const cameraEmpty = document.getElementById("cameraEmpty");
 const fpsText = document.getElementById("fpsText");
 const cameraLatency = document.getElementById("cameraLatency");
@@ -41,10 +42,12 @@ const PALETTE = [
 ];
 const colorCache = new Map();
 
+const SESSION_STORAGE_KEY = "yoloSessionId";
+
 const SESSION_ID = (() => {
   let id = "";
   try {
-    id = localStorage.getItem("yoloSessionId") || "";
+    id = sessionStorage.getItem(SESSION_STORAGE_KEY) || "";
   } catch (_) {}
   if (!id && typeof crypto !== "undefined" && crypto.randomUUID) {
     id = crypto.randomUUID();
@@ -52,7 +55,7 @@ const SESSION_ID = (() => {
     id = "s-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
   }
   try {
-    localStorage.setItem("yoloSessionId", id);
+    sessionStorage.setItem(SESSION_STORAGE_KEY, id);
   } catch (_) {}
   return id;
 })();
@@ -70,6 +73,12 @@ let cameraOverlayFrame = 0;
 
 function buildHeaders(extra) {
   return Object.assign({ "X-Session-Id": SESSION_ID }, extra || {});
+}
+
+function setCameraHint(text) {
+  if (cameraHint) {
+    cameraHint.textContent = text;
+  }
 }
 
 function setMediaAspect(element, width, height) {
@@ -174,7 +183,7 @@ function formatLabel(box) {
 
 function drawBoxes(ctx, boxes, scaleX, scaleY) {
   ctx.lineWidth = 2.5;
-  ctx.font = '600 14px "Inter", "Segoe UI", sans-serif';
+  ctx.font = '600 14px "Segoe UI", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif';
 
   boxes.forEach((box) => {
     const x = box.x * scaleX;
@@ -205,8 +214,15 @@ function drawBoxes(ctx, boxes, scaleX, scaleY) {
   });
 }
 
-function setStatus(target, html, variant) {
-  target.innerHTML = html;
+function setStatus(target, text, variant, showSpinner = false) {
+  const children = [];
+  if (showSpinner) {
+    const spinner = document.createElement("span");
+    spinner.className = "spinner";
+    children.push(spinner);
+  }
+  children.push(document.createTextNode(text));
+  target.replaceChildren(...children);
   if (variant) {
     target.dataset.variant = variant;
   } else {
@@ -309,7 +325,23 @@ async function detectImage(file) {
   const controller = new AbortController();
   imageAbort = controller;
 
-  setStatus(imageStatus, '<span class="spinner"></span> Detecting image...', "loading");
+  if (file.size > runtimeConfig.maxBodySize) {
+    setStatus(
+      imageStatus,
+      `Image file too large (max ${Math.round(runtimeConfig.maxBodySize / (1024 * 1024))} MB)`,
+      "error"
+    );
+    imageCount.textContent = "0";
+    imageLatency.textContent = "--";
+    resetImageSummary();
+    setImageEmpty(true);
+    if (imageAbort === controller) {
+      imageAbort = null;
+    }
+    return;
+  }
+
+  setStatus(imageStatus, "Detecting image...", "loading", true);
   imageCount.textContent = "0";
   imageLatency.textContent = "--";
   resetImageSummary();
@@ -362,7 +394,7 @@ async function detectImage(file) {
     setStatus(
       imageStatus,
       boxes.length
-        ? `Done: detected <strong>${boxes.length}</strong> object${boxes.length === 1 ? "" : "s"}`
+        ? `Done: detected ${boxes.length} object${boxes.length === 1 ? "" : "s"}`
         : "Done: no objects detected",
       boxes.length ? "ok" : "idle"
     );
@@ -559,6 +591,17 @@ async function startCamera() {
     return;
   }
 
+  if (!window.isSecureContext) {
+    setCameraHint("Public VPS camera access requires HTTPS or localhost.");
+    setCameraState("warn", "Camera requires HTTPS or localhost", "warn");
+    return;
+  }
+  if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
+    setCameraHint("This browser does not support the camera API.");
+    setCameraState("error", "Camera API unavailable", "error");
+    return;
+  }
+
   try {
     cameraRunId += 1;
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -568,12 +611,34 @@ async function startCamera() {
       setMediaAspect(cameraStage, cameraVideo.videoWidth, cameraVideo.videoHeight);
     }
     cameraEmpty.style.display = "none";
+    setCameraHint("Click Stop to end live detection.");
     drawCameraOverlay([]);
     scheduleNextCameraFrame(0);
     startCameraBtn.disabled = true;
     stopCameraBtn.disabled = false;
     setCameraState("running", "Camera started", "running");
-  } catch (_) {
+  } catch (error) {
+    if (error && error.name === "NotAllowedError") {
+      setCameraHint("Allow camera permission in the browser and try again.");
+      setCameraState("error", "Camera permission denied", "error");
+      return;
+    }
+    if (error && error.name === "NotFoundError") {
+      setCameraHint("No camera device was found on this machine.");
+      setCameraState("error", "No camera found", "error");
+      return;
+    }
+    if (error && error.name === "NotReadableError") {
+      setCameraHint("Another application may already be using the camera.");
+      setCameraState("error", "Camera is busy", "error");
+      return;
+    }
+    if (error && error.name === "SecurityError") {
+      setCameraHint("Public VPS camera access requires HTTPS or localhost.");
+      setCameraState("warn", "Camera requires HTTPS or localhost", "warn");
+      return;
+    }
+    setCameraHint("Check browser permission and VPS HTTPS access, then retry.");
     setCameraState("error", "Cannot access camera", "error");
   }
 }
@@ -604,6 +669,7 @@ function stopCamera() {
   drawCameraOverlay([]);
   clearMediaAspect(cameraStage);
   cameraEmpty.style.display = "";
+  setCameraHint("Click Start to begin live detection.");
   startCameraBtn.disabled = false;
   stopCameraBtn.disabled = true;
   cameraLatency.textContent = "--";
@@ -662,5 +728,8 @@ if (typeof ResizeObserver !== "undefined" && cameraStage) {
 }
 
 setImageEmpty(true);
+if (!window.isSecureContext) {
+  setCameraHint("Public VPS camera access requires HTTPS or localhost.");
+}
 checkHealth();
 window.setInterval(checkHealth, 15000);

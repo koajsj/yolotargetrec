@@ -1,122 +1,153 @@
-# YOLOv8 VPS 检测系统
+# YOLOv8 VPS 目标检测 Web 系统
 
-基于 YOLOv8 的单服务目标检测 Web 应用,支持 **图片检测** 与 **摄像头实时检测**,面向 VPS 一键部署。
+一个可直接部署到 VPS 的单体 YOLOv8 Web 应用。
 
-![tech](https://img.shields.io/badge/Python-3.10-3776AB) ![tech](https://img.shields.io/badge/FastAPI-0.115-009688) ![tech](https://img.shields.io/badge/YOLOv8-nano-FF6F00) ![tech](https://img.shields.io/badge/Docker-Ready-2496ED)
+后端使用 `FastAPI + ultralytics YOLOv8 + OpenCV`，前端使用原生 `HTML / CSS / JavaScript`，支持：
 
----
-
-## 功能特性
-
-- **图片检测**:支持拖拽 / 点击上传 PNG / JPG / WEBP,服务端推理后在原图上绘制检测框
-- **摄像头实时检测**:浏览器调用摄像头,每 250 ms 抽帧回传,实时叠加检测框、类别、置信度、跟踪 ID
-- **多用户隔离跟踪**:每个浏览器会话独立的 IoU 跟踪器(`X-Session-Id` 区分),多人同时使用不会串 ID
-- **多类别颜色编码**:不同目标类别使用 12 色调色板区分,标签采用同色实心背景 + 圆角
-- **检测结果汇总**:图片检测完成后,自动展示每个类别的数量分布
-- **服务健康检查**:前端定时轮询 `/health`,状态用脉冲点胶囊显示(就绪 / 异常)
-- **优雅降级**:摄像头模式下服务端过载会自动丢帧,跟踪失败回退为单帧编号
-- **在途请求槽位**:默认 2 个检测槽位,槽位满时摄像头帧会主动丢弃,避免前端堆积
-- **Docker 一键部署**:镜像内预下载 `yolov8n.pt`,容器自带健康检查,掉电自启
-
-## 预览
-
-打开 `http://YOUR_VPS_IP:8000` 即可使用,前端包含两个并列卡片:
-
-- **图片检测**:上传区 + 统计(对象数 / 推理耗时)+ 类别汇总 + 画布
-- **摄像头检测**:启停控制 + 实时 FPS / 耗时 + 状态指示 + 视频叠加层
+- 图片上传检测
+- 摄像头实时检测
+- Canvas 绘制检测框
+- 显示 `label / conf / track_id`
+- 前端显示 FPS
+- Docker 一键部署
 
 ## 技术栈
 
-| 层级 | 技术 |
-| --- | --- |
-| 模型 | Ultralytics YOLOv8 Nano (`yolov8n.pt`) |
-| 后端 | FastAPI 0.115 + Uvicorn 0.30 |
-| 图像处理 | OpenCV 4.10 (`opencv-python-headless`) |
-| 数值计算 | NumPy 1.26 |
-| 跟踪 | 自实现轻量 IoU 跟踪器(见 `backend/tracker.py`) |
-| 前端 | 原生 HTML / CSS / JS,无构建步骤 |
-| 部署 | Docker + Docker Compose,镜像内预热模型 |
+- Python 3.10
+- FastAPI
+- ultralytics YOLOv8
+- OpenCV
+- numpy
+- uvicorn
+- HTML / CSS / JavaScript
+- Docker / Docker Compose
 
-## 环境要求
+## 项目结构
 
-- Linux VPS(已在 Ubuntu 20.04 / 22.04 测试)
-- Docker
-- Docker Compose 插件或 `docker-compose`
-- Git
-- 浏览器需支持 `getUserMedia`(用于摄像头检测)
-
-## 一键启动
-
-```bash
-git clone https://github.com/koajsj/yolotargetrec.git
-cd yolotargetrec
-bash run.sh
+```text
+yolotargetrec/
+├── backend/
+│   ├── app.py
+│   ├── config.py
+│   ├── requirements.txt
+│   ├── tracker.py
+│   ├── utils.py
+│   └── yolo.py
+├── frontend/
+│   ├── app.js
+│   ├── index.html
+│   └── style.css
+├── tests/
+│   ├── test_config.py
+│   ├── test_detector_slots.py
+│   └── test_tracker.py
+├── .github/workflows/ci.yml
+├── _lib.sh
+├── docker-compose.yml
+├── Dockerfile
+├── LICENSE
+├── pyproject.toml
+├── README.md
+├── restart.sh
+├── run.sh
+├── stop.sh
+└── update.sh
 ```
 
-启动成功后访问:
+说明：
 
+- `backend/`：后端接口、检测、轻量跟踪
+- `frontend/`：页面、交互、画框、FPS
+- `tests/`：单元测试
+- `run.sh / update.sh / restart.sh / stop.sh`：一键运维脚本
+- `_lib.sh`：脚本共用函数
+
+## 功能说明
+
+### 1. 图片检测
+
+- 上传 PNG / JPG / WEBP 图片
+- 调用 `POST /detect?mode=image`
+- 服务端返回统一结构
+- 前端在 canvas 上绘制检测框和标签
+
+### 2. 摄像头实时检测
+
+- 浏览器调用 `getUserMedia`
+- 每 `200-300ms` 抽一帧上传
+- 调用 `POST /detect?mode=camera`
+- 前端叠加绘制检测框
+- 显示 FPS 和推理耗时
+
+### 3. 轻量跟踪
+
+- 后端内置简化版 tracking
+- 使用 IoU + 中心点距离匹配
+- 同一目标跨帧尽量保持 `track_id`
+- tracking 异常时自动降级为每帧重新编号，不会导致服务崩溃
+
+## 接口
+
+### `GET /health`
+
+返回服务状态。
+
+示例：
+
+```json
+{
+  "ok": true,
+  "model": "yolov8n.pt",
+  "device": "cpu",
+  "busy": false,
+  "active": 0,
+  "max_concurrent": 2,
+  "sessions": 1,
+  "config": {
+    "camera_interval_ms": 250,
+    "camera_max_width": 640,
+    "request_timeout_ms": 15000,
+    "max_body_size": 10485760,
+    "max_image_dimension": 2560
+  },
+  "error": null
+}
 ```
-http://YOUR_VPS_IP:8000
-```
 
-## 全新 Ubuntu VPS 完整步骤
+### `POST /detect`
 
-```bash
-sudo apt update
-sudo apt install -y git docker.io docker-compose-plugin
-sudo systemctl enable docker
-sudo systemctl start docker
-sudo usermod -aG docker $USER
-newgrp docker
+查询参数：
 
-git clone https://github.com/koajsj/yolotargetrec.git
-cd yolotargetrec
-bash run.sh
-```
+- `mode=image`
+- `mode=camera`
 
-## 常用命令
+请求体：
 
-| 场景 | 命令 |
-| --- | --- |
-| 首次启动 / 重建 | `bash run.sh` |
-| 快进拉取最新代码并重启 | `bash update.sh` |
-| 仅重启容器 | `bash restart.sh` |
-| 停止服务 | `bash stop.sh` |
+- 直接上传图片二进制内容
 
-`run.sh` 自动完成以下动作:
-
-1. 检查 Docker 是否可用
-2. 自动识别 `docker compose` 或 `docker-compose`
-3. 构建镜像(首次会下载 YOLOv8 nano 权重,约 6 MB)
-4. 后台启动容器
-5. 轮询 `GET /health` 直到服务就绪
-6. 打印访问地址
-
-## 接口文档
-
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| `GET` | `/` | 返回前端页面 |
-| `GET` | `/style.css`、`/app.js` | 前端静态资源 |
-| `GET` | `/health` | 健康检查,模型就绪时返回 `200`,未就绪时返回 `503` |
-| `POST` | `/detect?mode=image` | 图片检测,请求体为图片二进制,返回 `boxes` |
-| `POST` | `/detect?mode=camera` | 摄像头帧检测,JPEG 编码,支持 `dropped` 字段 |
-
-`/detect` 返回结构(成功):
+成功返回：
 
 ```json
 {
   "ok": true,
   "boxes": [
-    { "x": 120, "y": 80, "w": 200, "h": 150, "label": "person", "conf": 0.92, "track_id": 1 }
+    {
+      "x": 120,
+      "y": 80,
+      "w": 200,
+      "h": 150,
+      "label": "person",
+      "conf": 0.92,
+      "track_id": 1
+    }
   ],
+  "processing_ms": 42,
   "image_width": 1920,
-  "image_height": 1080,
-  "processing_ms": 42
+  "image_height": 1080
 }
 ```
 
-`/detect` 丢帧响应(摄像头模式且服务端繁忙):
+高负载丢帧返回：
 
 ```json
 {
@@ -131,106 +162,209 @@ bash run.sh
 }
 ```
 
-`active / max_concurrent` 在丢帧响应中始终返回,方便前端展示排队情况。
+## 一键部署
 
-> 当 `mode=camera` 且服务端繁忙时,响应中 `dropped: true` 表示该帧被丢弃,前端会显示"Server busy, frame dropped"。
-
-## 功能验证
-
-1. 打开 `http://YOUR_VPS_IP:8000`,确认右上角状态显示为"Service is ready"
-2. **图片检测**:点击"Select Image"或拖拽一张含有人 / 物的图片,确认画布上出现彩色检测框,标签包含类别、置信度与 ID
-3. **摄像头检测**:点击"Start",授权浏览器摄像头权限,确认视频流上实时绘制检测框,右上 FPS 数值 > 0
-4. 关闭页面后再次访问,容器应保持运行(Docker `restart: always`)
-
-## 配置说明
-
-- **服务端口**:`8000`(修改见 `docker-compose.yml`)
-- **模型**:`yolov8n.pt`,在镜像构建阶段预下载,运行时不再联网
-- **跨域来源**:`ALLOWED_ORIGINS` 留空时仅同源访问;若前后端分离,可传逗号分隔白名单
-- **摄像头抽帧间隔**:由后端 `CAMERA_INTERVAL_MS` 下发给前端,默认 `250 ms`
-- **抽帧最大宽度**:由后端 `CAMERA_MAX_WIDTH` 下发给前端,默认 `640 px`
-- **跟踪策略**:`backend/tracker.py` 实现轻量 IoU 匹配 + per-session 注册表(`TrackerRegistry`);会话空闲 5 分钟后自动清理
-- **健康检查**:`docker-compose.yml` 中每 15 s 探测一次 `/health`,失败 10 次标记为不健康
-- **输入图像上限**:10 MB body,长边 ≤ 2560 px
-- **检测槽位数**:`MAX_CONCURRENT_DETECTIONS`(默认 2)。这是允许同时在途的检测请求数,不是单模型内部的真实并行推理数;超出时摄像头帧会被丢弃并在前端状态栏显示 "Server busy: N/N slots in use"
-
-## 项目结构
-
-```
-.
-├── backend/
-│   ├── app.py              # FastAPI 入口与路由
-│   ├── yolo.py             # YOLOv8 推理封装
-│   ├── tracker.py          # IoU 跟踪器 + TrackerRegistry
-│   ├── utils.py            # 工具函数
-│   └── requirements.txt    # Python 依赖
-├── frontend/
-│   ├── index.html          # 主页面
-│   ├── style.css           # 样式
-│   └── app.js              # 交互逻辑
-├── tests/
-│   └── test_tracker.py     # 跟踪器单元测试
-├── .github/
-│   └── workflows/
-│       └── ci.yml          # GitHub Actions smoke test
-├── Dockerfile              # 镜像构建
-├── docker-compose.yml      # 容器编排
-├── .dockerignore           # 构建上下文白名单
-├── run.sh                  # 一键启动
-├── update.sh               # 拉取更新并重启
-├── restart.sh              # 重启容器
-├── stop.sh                 # 停止容器
-├── .gitignore              # 忽略 .claude/、__pycache__、node_modules 等
-├── LICENSE                 # MIT
-└── README.md
-```
-
-## 单元测试
+### 方式一：已有 Docker 环境
 
 ```bash
-python -m unittest discover -s tests -v
+git clone https://github.com/koajsj/yolotargetrec.git
+cd yolotargetrec
+bash run.sh
 ```
 
-## 本地开发(无 Docker)
+启动成功后访问：
 
-不通过 Docker 直接在主机上跑:
+```text
+http://你的VPS公网IP:8000
+```
+
+### 方式二：全新 Ubuntu VPS
+
+适用于 Ubuntu 20.04 / 22.04 / 24.04。
+
+直接复制执行：
 
 ```bash
-# 一次性安装依赖
+sudo apt update
+sudo apt install -y git docker.io docker-compose-plugin
+sudo systemctl enable docker
+sudo systemctl start docker
+git clone https://github.com/koajsj/yolotargetrec.git
+cd yolotargetrec
+sudo bash run.sh
+```
+
+## 脚本说明
+
+### 启动
+
+```bash
+bash run.sh
+```
+
+会自动执行：
+
+1. 检查 Docker
+2. 检查 Docker Compose
+3. 构建镜像
+4. 下载 `yolov8n.pt`
+5. 启动容器
+6. 等待 `/health` 就绪
+7. 输出访问地址
+
+### 更新
+
+```bash
+bash update.sh
+```
+
+如果当前用户还没有加入 `docker` 组，也可以先用：
+
+```bash
+sudo bash update.sh
+```
+
+会自动执行：
+
+1. `git fetch origin main`
+2. `git merge --ff-only`
+3. 重新构建镜像
+4. 重新启动容器
+5. 等待健康检查通过
+
+### 重启
+
+```bash
+bash restart.sh
+```
+
+### 停止
+
+```bash
+bash stop.sh
+```
+
+## VPS 访问与摄像头说明
+
+### 图片检测
+
+图片检测直接使用下面地址即可：
+
+```text
+http://你的VPS公网IP:8000
+```
+
+### 摄像头检测
+
+现代浏览器对摄像头有安全限制：
+
+- `localhost` 可以直接调用摄像头
+- `HTTPS` 域名可以调用摄像头
+- `HTTP + 公网 IP` 通常不能调用摄像头
+
+这不是项目 bug，是浏览器安全策略。
+
+因此：
+
+- 只做图片检测：直接访问 `http://你的VPS公网IP:8000`
+- 需要公网摄像头检测：请给 VPS 配置域名和 HTTPS，再访问该域名
+
+## 推荐部署方式
+
+### 1. 最快可用
+
+- VPS 上直接执行 `bash run.sh`
+- 先验证图片检测
+
+### 2. 完整可用
+
+- VPS 上执行 `bash run.sh`
+- 再用 Nginx 或 Caddy 反向代理到 `127.0.0.1:8000`
+- 给域名配置 HTTPS
+- 最终通过 `https://你的域名` 使用摄像头检测
+
+## 常用排查命令
+
+查看容器：
+
+```bash
+docker compose ps
+```
+
+查看日志：
+
+```bash
+docker compose logs -f
+```
+
+查看健康状态：
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+## 本地开发
+
+安装依赖：
+
+```bash
 python -m pip install -r backend/requirements.txt
+```
 
-# 启动后端
-cd /path/to/yolo-vps
-uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+启动服务：
 
-# 另一个终端,跑测试
+```bash
+uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+## 运行测试
+
+```bash
 python -m unittest discover -s tests -v
 ```
 
-也可以 `pip install -e .` 把项目装为可编辑包,这样 `python -m backend.app` 在任意 CWD 都能跑。
+## 稳定性设计
 
-## 持续集成
+- 固定使用 `yolov8n.pt`
+- 固定 CPU 推理
+- 推理尺寸固定 `640`
+- 请求体大小受限
+- 图片最大边受限
+- 所有主要接口有异常保护
+- 摄像头模式有限流与丢帧降级
+- tracking 失败自动回退
+- 每个浏览器标签页独立 `session_id`
 
-`.github/workflows/ci.yml` 在 push / PR 时跑:
+## 验收步骤
 
-1. `pip install -r backend/requirements.txt`
-2. `python -c "import backend.app, ..."` 导入冒烟
-3. `python -m unittest discover -s tests` 单元测试
+### 1. 启动服务
 
-GitHub Actions 因镜像体积问题**不会**真的下载 YOLOv8 权重(那一步留到 Docker 构建),仅验证代码可导入、可运行。
+```bash
+bash run.sh
+```
 
-## 注意事项
+### 2. 浏览器访问
 
-- VPS 安全组 / 防火墙需放行 TCP `8000`
-- 首次构建会从 PyPI 与 GitHub 拉取依赖,镜像约 1.5 GB
-- 摄像头检测需要 HTTPS 或 `localhost` 才能调用 `getUserMedia`,裸 IP + HTTP 部署时浏览器可能拒绝授权
-- 若要在公网域名下启用摄像头,请在反代(Nginx / Caddy)上配置 HTTPS
-- 服务端过载时会主动丢帧(返回 `dropped: true`),不会因排队而拖慢 UI
-- `update.sh` 仅允许干净工作区上的 fast-forward 更新,避免把部署机改成自动 merge 状态
+```text
+http://你的VPS公网IP:8000
+```
 
-## 路线图
+### 3. 验证图片检测
 
-- [ ] 模型热切换(`yolov8s/m/l`)
-- [ ] 检测结果导出(JSON / CSV)
-- [ ] WebSocket 推送替代轮询
-- [ ] 多客户端同时摄像头检测
+- 上传一张图片
+- 页面显示检测框
+- 页面显示标签、置信度、track_id
+
+### 4. 验证摄像头检测
+
+- 若在 `localhost` 或 `HTTPS` 环境
+- 点击 `Start`
+- 页面显示视频、检测框、FPS、耗时
+
+### 5. 验证更新
+
+```bash
+bash update.sh
+```
+
+更新后再次访问页面，功能应保持正常。
