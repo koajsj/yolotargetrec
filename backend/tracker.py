@@ -3,7 +3,6 @@ import math
 import threading
 import time
 
-
 logger = logging.getLogger("yolo-vps.tracker")
 
 

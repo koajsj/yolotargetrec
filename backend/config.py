@@ -1,10 +1,9 @@
 """Centralised configuration."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
 import os
-
+from dataclasses import dataclass
 
 logger = logging.getLogger("yolo-vps.config")
 

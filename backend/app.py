@@ -13,7 +13,6 @@ from backend.tracker import TrackerRegistry, assign_fallback_track_ids
 from backend.utils import decode_image_bytes
 from backend.yolo import YOLODetector
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
