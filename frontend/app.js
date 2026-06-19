@@ -234,6 +234,13 @@ function setImageEmpty(empty) {
   imageEmpty.style.display = empty ? "" : "none";
 }
 
+function resetImagePreview() {
+  imageCtx.clearRect(0, 0, imageCanvas.width, imageCanvas.height);
+  imageCanvas.width = 0;
+  imageCanvas.height = 0;
+  clearMediaAspect(imageDrop);
+}
+
 function resetImageSummary() {
   imageSummary.replaceChildren();
 }
@@ -328,12 +335,13 @@ async function detectImage(file) {
   if (file.size > runtimeConfig.maxBodySize) {
     setStatus(
       imageStatus,
-      `Image file too large (max ${Math.round(runtimeConfig.maxBodySize / (1024 * 1024))} MB)`,
+      `Image file too large (${Math.round(file.size / (1024 * 1024))} MB, max ${Math.round(runtimeConfig.maxBodySize / (1024 * 1024))} MB)`,
       "error"
     );
     imageCount.textContent = "0";
     imageLatency.textContent = "--";
     resetImageSummary();
+    resetImagePreview();
     setImageEmpty(true);
     if (imageAbort === controller) {
       imageAbort = null;
@@ -414,6 +422,7 @@ async function detectImage(file) {
 
     setStatus(imageStatus, message, "error");
     if (!previewDrawn) {
+      resetImagePreview();
       setImageEmpty(true);
     }
   } finally {
@@ -429,7 +438,10 @@ async function detectImage(file) {
 function updateFps() {
   const now = performance.now();
   fpsMarks = fpsMarks.filter((mark) => now - mark < 1000);
-  fpsText.textContent = fpsMarks.length.toFixed(1);
+  const fps = fpsMarks.length >= 2
+    ? (fpsMarks.length - 1) / ((fpsMarks[fpsMarks.length - 1] - fpsMarks[0]) / 1000)
+    : fpsMarks.length;
+  fpsText.textContent = fps.toFixed(1);
 }
 
 function drawCameraOverlay(boxes = lastCameraBoxes) {
@@ -660,6 +672,7 @@ function stopCamera() {
   if (cameraStream) {
     cameraStream.getTracks().forEach((track) => track.stop());
     cameraStream = null;
+    cameraVideo.srcObject = null;
   }
   requestPending = false;
   fpsMarks = [];
@@ -700,6 +713,13 @@ imageDrop.addEventListener("drop", (event) => {
   if (file && file.type.startsWith("image/")) {
     detectImage(file);
   }
+});
+
+imageDrop.addEventListener("click", (event) => {
+  if (event.target.closest("label") || event.target.closest("input")) {
+    return;
+  }
+  imageInput.click();
 });
 
 imageInput.addEventListener("change", (event) => {

@@ -44,3 +44,4 @@ run.sh
 update.sh
 restart.sh
 stop.sh
+_lib.sh

@@ -47,8 +47,9 @@ class YOLODetector:
             self._active += 1
 
         try:
-            acquired = self._predict_lock.acquire(timeout=wait_timeout) if wait_timeout is not None else True
-            if wait_timeout is None:
+            if wait_timeout is not None:
+                acquired = self._predict_lock.acquire(timeout=wait_timeout)
+            else:
                 self._predict_lock.acquire()
                 acquired = True
             if not acquired:
