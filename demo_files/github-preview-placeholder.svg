@@ -1,0 +1,64 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="40" x2="1180" y2="680" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF5E8"/>
+      <stop offset="0.55" stop-color="#FFE1D1"/>
+      <stop offset="1" stop-color="#FFD3C2"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="210" y1="170" x2="1020" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFF7F1"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="230" y1="220" x2="980" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF6B3D"/>
+      <stop offset="1" stop-color="#FF8F5A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="720" rx="32" fill="url(#bg)"/>
+  <circle cx="1098" cy="122" r="124" fill="#FFC3A7" fill-opacity="0.45"/>
+  <circle cx="181" cy="638" r="150" fill="#FFD6B7" fill-opacity="0.55"/>
+
+  <rect x="96" y="74" width="1088" height="572" rx="28" fill="#FFFFFF" fill-opacity="0.72"/>
+  <rect x="120" y="98" width="1040" height="524" rx="26" fill="url(#panel)" stroke="#F5C9B2" stroke-width="2"/>
+
+  <rect x="156" y="138" width="968" height="58" rx="18" fill="#FFF2EA"/>
+  <rect x="186" y="156" width="222" height="20" rx="10" fill="#FF6B3D"/>
+  <rect x="880" y="156" width="76" height="20" rx="10" fill="#FFD3C2"/>
+  <rect x="970" y="156" width="116" height="20" rx="10" fill="#FFD3C2"/>
+
+  <rect x="156" y="222" width="208" height="124" rx="22" fill="url(#accent)"/>
+  <rect x="382" y="222" width="208" height="124" rx="22" fill="#FFF2EA"/>
+  <rect x="608" y="222" width="208" height="124" rx="22" fill="#FFF2EA"/>
+  <rect x="834" y="222" width="290" height="124" rx="22" fill="#FFF2EA"/>
+
+  <rect x="184" y="248" width="92" height="16" rx="8" fill="#FFE2D5"/>
+  <rect x="184" y="278" width="132" height="36" rx="12" fill="#FFFFFF" fill-opacity="0.9"/>
+  <rect x="408" y="248" width="96" height="16" rx="8" fill="#F0BC9A"/>
+  <rect x="408" y="278" width="118" height="32" rx="12" fill="#FFD7C0"/>
+  <rect x="634" y="248" width="96" height="16" rx="8" fill="#F0BC9A"/>
+  <rect x="634" y="278" width="118" height="32" rx="12" fill="#FFD7C0"/>
+  <rect x="862" y="248" width="120" height="16" rx="8" fill="#F0BC9A"/>
+  <rect x="862" y="280" width="228" height="18" rx="9" fill="#FFD7C0"/>
+  <rect x="862" y="310" width="184" height="18" rx="9" fill="#FFD7C0"/>
+
+  <rect x="156" y="374" width="460" height="210" rx="24" fill="#FFF6F0"/>
+  <rect x="636" y="374" width="488" height="210" rx="24" fill="#FFF6F0"/>
+
+  <path d="M194 534C238 472 272 510 318 444C352 395 394 405 430 450C466 493 500 476 540 424C557 402 573 390 596 392" stroke="#FF6B3D" stroke-width="10" stroke-linecap="round"/>
+  <path d="M680 538L730 474L782 496L838 426L894 446L948 398L1004 436L1060 364" stroke="#FF8F5A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="194" y="402" width="132" height="18" rx="9" fill="#F0BC9A"/>
+  <rect x="194" y="432" width="98" height="14" rx="7" fill="#FFD7C0"/>
+  <rect x="680" y="402" width="158" height="18" rx="9" fill="#F0BC9A"/>
+  <rect x="680" y="432" width="120" height="14" rx="7" fill="#FFD7C0"/>
+
+  <rect x="842" y="458" width="242" height="92" rx="18" fill="#FFFFFF"/>
+  <rect x="866" y="480" width="72" height="14" rx="7" fill="#F0BC9A"/>
+  <rect x="866" y="506" width="188" height="14" rx="7" fill="#FFE1D1"/>
+  <rect x="866" y="530" width="154" height="14" rx="7" fill="#FFE1D1"/>
+
+  <text x="186" y="126" fill="#9F4A28" font-family="Segoe UI, Microsoft YaHei, Arial, sans-serif" font-size="30" font-weight="700">消防安全风险分析与预警系统</text>
+  <text x="186" y="640" fill="#A55A3A" font-family="Segoe UI, Microsoft YaHei, Arial, sans-serif" font-size="24" font-weight="600">GitHub 首页预览占位图</text>
+  <text x="186" y="674" fill="#B86B48" font-family="Segoe UI, Microsoft YaHei, Arial, sans-serif" font-size="18">可替换为首页仪表盘、图片检测页或摄像头检测页实际截图</text>
+</svg>
